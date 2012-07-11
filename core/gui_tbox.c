@@ -14,11 +14,12 @@
 #include "module_load.h"
 
 //-------------------------------------------------------------------
-extern void gui_tbox_kbd_process();
-extern void gui_tbox_draw(int enforce_redraw);
+int gui_tbox_kbd_process();
+void gui_tbox_kbd_process_menu_btn();
+void gui_tbox_draw(int enforce_redraw);
 
 gui_handler GUI_MODE_TBOX =
-    /*GUI_MODE_TBOX*/       { GUI_MODE_MODULE,   gui_tbox_draw,    gui_tbox_kbd_process,   gui_tbox_kbd_process, 0, GUI_MODE_MAGICNUM };
+    /*GUI_MODE_TBOX*/ { GUI_MODE_MODULE, gui_tbox_draw, gui_tbox_kbd_process, gui_tbox_kbd_process_menu_btn, 0, GUI_MODE_MAGICNUM };
 
 static gui_handler *gui_tbox_mode_old; // stored previous gui_mode
 static int module_idx = -1;
@@ -32,6 +33,7 @@ static unsigned int tbox_width; //width of the 'window'
 static const char*  tbox_title;
 static const char*  tbox_msg;
 static char         cursor_to_draw;
+static int          cl_greygrey;
 
 // height of prompt
 #define MAX_LINES              6
@@ -269,7 +271,7 @@ void gui_tbox_draw(int enforce_redraw)
 
             // clean previous symbols line
             int pline = (line == 0)?lines:line-1;
-            draw_filled_rect(key_offset_x, tbox_buttons_y, key_offset_x+(tbox_width-1)*FONT_WIDTH, tbox_buttons_y+3*FONT_HEIGHT, MAKE_COLOR(COLOR_GREY, COLOR_GREY));
+            draw_filled_rect(key_offset_x, tbox_buttons_y, key_offset_x+(tbox_width-1)*FONT_WIDTH, tbox_buttons_y+3*FONT_HEIGHT, cl_greygrey);
 
             // draw current symbols line
             int x, group;
@@ -329,7 +331,7 @@ void gui_tbox_draw(int enforce_redraw)
         cursor_to_draw = 0;
     }
     else {
-        draw_line(text_offset_x+(1+cursor-offset)*FONT_WIDTH, text_offset_y+1, text_offset_x+(1+cursor-offset)*FONT_WIDTH, text_offset_y+FONT_HEIGHT-3, MAKE_COLOR(COLOR_GREY, COLOR_GREY));
+        draw_line(text_offset_x+(1+cursor-offset)*FONT_WIDTH, text_offset_y+1, text_offset_x+(1+cursor-offset)*FONT_WIDTH, text_offset_y+FONT_HEIGHT-3, cl_greygrey);
         cursor_to_draw = 1;
     }
 }
@@ -424,7 +426,24 @@ static void tbox_keyboard_key(char curKey, int subgroup)
     gui_tbox_redraw = 1;
 }
 
-void gui_tbox_kbd_process()
+void gui_tbox_kbd_process_menu_btn()
+{
+    switch (Mode)
+    {
+    case 'K':
+        Mode = 'T';
+        break;
+    case 'T':
+        Mode = 'B';
+        break;
+    default: // Mode == 'B'
+        Mode = 'K';
+        break;
+    }
+    gui_tbox_redraw=2;
+}
+
+int gui_tbox_kbd_process()
 {
     if (Mode == 'K') {
         switch (kbd_get_autoclicked_key() | get_jogdial_direction()) {
@@ -463,10 +482,6 @@ void gui_tbox_kbd_process()
                 if (text[cursor+1] != '\0') tbox_move_cursor(1);
                 RESET_CHAR
                 break;
-            case KEY_MENU:
-                Mode = 'T';
-                gui_tbox_redraw=2;
-                break;
         }
     }
     else if (Mode == 'T') {
@@ -501,10 +516,6 @@ void gui_tbox_kbd_process()
                     gui_tbox_redraw = 1;
                 }
                 break;
-            case KEY_MENU:
-                Mode = 'B';
-                gui_tbox_redraw=2;
-                break;
         }
     }
     else { // Mode == 'B'
@@ -524,7 +535,6 @@ void gui_tbox_kbd_process()
             case KEY_SET:
                 kbd_reset_autoclicked_key();
                 gui_set_mode(gui_tbox_mode_old);
-                draw_restore();
                 if (tbox_on_select) {
                     if (tbox_button_active == 0)
                         tbox_on_select(text);   // ok
@@ -535,12 +545,9 @@ void gui_tbox_kbd_process()
                 }
                 module_async_unload(module_idx);
                 break;
-            case KEY_MENU:
-                Mode = 'K';
-                gui_tbox_redraw=2;
-                break;
         }
     }
+    return 0;
 }
 
 

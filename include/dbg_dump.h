@@ -14,12 +14,9 @@ if user_data is null, user_data_len is stored as user_val in dump header
 otherwise, the user_data pointer is stored in user_val
 */
 #ifdef OPT_DBG_DUMP
-void dbg_dump_write(const char *dumpname, unsigned flags, int user_data_len, char *user_data);
-// helper for assert macros
-void dbg_dump_assert(const char *dumpname, const char *expr,const char *file, int line);
+void dbg_dump_write(char *name, unsigned flags, int user_data_len, char *user_data);
 #else
 // if not enabled make it a no-op so dumps can be left in place without code changes
-#define dbg_dump_write(...) ((void)0)
-#define dbg_dump_assert(...) ((void)0)
+#define dbg_dump_write(...)
 #endif // OPT_DBG_DUMP
 #endif // _DBG_DUMP_H
